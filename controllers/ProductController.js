@@ -1,4 +1,4 @@
-const { Product } = require('./../Model/ProductModel');
+const {Product} = require('./../Model/ProductModel');
 class APIFeatures
 {
     constructor(query,queryString)
@@ -6,14 +6,32 @@ class APIFeatures
         this.query = query;
         this.queryString = queryString;
     }
+    search()
+    {
+        const keyword = this.queryString.keyword ? {
+            name : {
+                $regex: this.queryString.keyword,
+                $options: 'i'
+            }
+        } : {}
+
+        this.query = this.query.find({...keyword})
+        return this    
+    }
     filter()
     {
         const queryObject = {...this.queryString};
-        const excludedFields = ['page', 'sort', 'limit', 'fields'];
-        excludedFields.forEach(el => delete queryObject[el]);
+
+        //Remove fields from the query
+        const RemoveFields = ['page', 'sort', 'limit', 'keyword'];
+        RemoveFields.forEach(el => delete queryObject[el]);
+        
+        //Advance Filter
         let queryStr = JSON.stringify(queryObject);
         queryStr = queryStr.replace('/\b(gte|gt|lte|lt|\b/g)', match => `$${match}`);
-        this.query.find(JSON.parse(queryStr));
+
+
+        this.query = this.query.find(JSON.parse(queryStr));
         return this;
     }
     sort()
@@ -41,9 +59,13 @@ class APIFeatures
 exports.getAllProduct= async (req, res) => 
 { 
     try
-    {
-         
-        const features = new APIFeatures(Product.find(),req.query).filter().sort().paginate()
+    { 
+        const features = new APIFeatures(Product.find(),req.query)
+        .search()
+        .filter()
+        .sort()
+        .paginate()
+
         const product = await features.query;
 
        //SEND RESPONSE
@@ -58,9 +80,8 @@ exports.getAllProduct= async (req, res) =>
     catch(err)
     {
         console.log(err);
-        return res
-        .status(500)
-        .send('Server error');
+        res.status(500).send('Server error');
+        return;
     }   
 }
 exports.getProductById = async (req, res) => 
@@ -90,12 +111,12 @@ exports.getProductById = async (req, res) =>
 exports.createProduct = async (req, res)=> 
 {   
     try {
-    const newProduct = await Product.create(req.body)
-    console.log(newProduct)
+    const NewProduct = await Product.create(req.body)
+    console.log(NewProduct)
             res.status(202).json({
             status: 'Success',
             data: {
-                Product : newProduct
+                Product : NewProduct
             }
         });
     } 
