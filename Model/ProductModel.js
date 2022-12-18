@@ -6,6 +6,7 @@ const ProductSchema = mongoose.Schema({
         required : [true, 'A product name must be provided'],
     },
     image : [String],
+    Images : String,
     rating : String,
     price : {
         type : Number,
